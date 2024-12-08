@@ -66,6 +66,7 @@ bool isAppleColor(HSV hsv) {
            (hsv.v >= 30 && hsv.v <= 211);
 }
 
+
 bool isOrangeColor(HSV hsv) {
     return (hsv.h >= 11 && hsv.h <= 19) &&
            (hsv.s >= 192 && hsv.s <= 255) &&
