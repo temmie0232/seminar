@@ -4,7 +4,7 @@
 
 HSVFilter::HSVFilter() {
     // 初期閾値の設定
-    thresholds.apple = {0, 11, 65, 237, 30, 211};
+    thresholds.apple = {0, 10, 65, 237, 30, 211};   // (11->10)
     thresholds.orange = {11, 19, 192, 255, 162, 255};
     thresholds.stem = {14, 41, 78, 222, 76, 161};
 }
