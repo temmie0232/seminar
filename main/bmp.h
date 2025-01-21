@@ -6,78 +6,87 @@
 #include <vector>
 #include <fstream>
 #include <stdexcept>
+#include <cmath>
+#include <algorithm>
 
-#pragma pack(push, 1) // 構造体のアラインメントを1バイトに設定
+// BMPファイルのヘッダー構造体を1バイトアラインメントで定義
+#pragma pack(push, 1)
 
-// BMPファイルヘッダー
+// BMPファイルヘッダー (14 bytes)
 struct BMPFileHeader
 {
-    uint16_t file_type{0x4D42}; // "BM" (0x4D42)
-    uint32_t file_size{0};      // ファイルサイズ
-    uint16_t reserved1{0};      // 予約領域1
-    uint16_t reserved2{0};      // 予約領域2
-    uint32_t offset_data{0};    // ピクセルデータ開始位置までのオフセット
+    uint16_t file_type{0x4D42}; // BMPファイルのマジックナンバー "BM" (0x4D42)
+    uint32_t file_size{0};      // ファイル全体のサイズ（バイト単位）
+    uint16_t reserved1{0};      // 予約領域1（未使用）
+    uint16_t reserved2{0};      // 予約領域2（未使用）
+    uint32_t offset_data{0};    // ファイル先頭から画像データまでのオフセット
 };
 
-// BMPファイル情報ヘッダー
+// BMPファイル情報ヘッダー (40 bytes)
 struct BMPInfoHeader
 {
-    uint32_t size{0};              // 情報ヘッダーのサイズ
-    int32_t width{0};              // 画像の幅 (px)
-    int32_t height{0};             // 画像の高さ (px)
+    uint32_t size{0};              // 情報ヘッダーのサイズ（40バイト）
+    int32_t width{0};              // 画像の幅（ピクセル単位）
+    int32_t height{0};             // 画像の高さ（ピクセル単位）
     uint16_t planes{1};            // プレーン数（常に1）
-    uint16_t bit_count{0};         // 1ピクセルあたりのビット数
-    uint32_t compression{0};       // 圧縮形式
-    uint32_t size_image{0};        // 画像データのサイズ
+    uint16_t bit_count{0};         // 1ピクセルあたりのビット数（本プログラムでは24ビットのみ対応）
+    uint32_t compression{0};       // 圧縮形式（0=無圧縮）
+    uint32_t size_image{0};        // 画像データ部のサイズ
     int32_t x_pixels_per_meter{0}; // 水平解像度
     int32_t y_pixels_per_meter{0}; // 垂直解像度
-    uint32_t colors_used{0};       // 使用する色数
-    uint32_t colors_important{0};  // 重要な色数
+    uint32_t colors_used{0};       // カラーパレット数
+    uint32_t colors_important{0};  // 重要なカラーパレット数
 };
 
 #pragma pack(pop) // アラインメント設定を元に戻す
 
-// ピクセルの色情報を保持する構造体
+// ピクセルのRGB値を保持する構造体
 struct Pixel
 {
-    uint8_t b;
-    uint8_t g;
-    uint8_t r;
+    uint8_t b; // 青成分 (0-255)
+    uint8_t g; // 緑成分 (0-255)
+    uint8_t r; // 赤成分 (0-255)
 };
 
-// BMPファイル処理のためのクラス
+// HSV色空間の値を保持する構造体
+struct HSVColor
+{
+    double h; // 色相 (0-360度)
+    double s; // 彩度 (0-255)
+    double v; // 明度 (0-255)
+};
+
+// BMPファイルの処理を行うクラス
 class BMPProcessor
 {
-
 public:
-    BMPProcessor();  // コンストラクタ
-    ~BMPProcessor(); // デストラクタ
+    BMPProcessor();
+    ~BMPProcessor();
 
-    // BMPファイルを読み込む
-    void readBMP(const std::string &filename);
+    // BMPファイルの読み込み・書き込み
+    void readBMP(const std::string &filename);  // BMPファイルを読み込む
+    void writeBMP(const std::string &filename); // BMPファイルを保存する
 
-    // BMPファイルを保存する
-    void writeBMP(const std::string &filename);
-
-    // 画像の幅を取得
+    // 画像サイズの取得
     int32_t getWidth() const { return info_header.width; }
-
-    // 画像の高さを取得
     int32_t getHeight() const { return info_header.height; }
 
-    // 指定座標のピクセルへの参照を取得
-    Pixel &getPixel(int x, int y);
+    // ピクセル操作
+    Pixel &getPixel(int x, int y);                   // 指定座標のRGBピクセルを取得
+    void setPixel(int x, int y, const Pixel &pixel); // 指定座標にRGBピクセルを設定
 
-    // 指定座標にピクセルを設定
-    void setPixel(int x, int y, const Pixel &pixel);
+    // HSV関連の操作
+    HSVColor getHSVPixel(int x, int y) const; // 指定座標のHSV値を取得
+    void convertToHSV();                      // 画像全体をHSV色空間に変換
 
 private:
-    BMPFileHeader file_header; // BMPファイルヘッダー
-    BMPInfoHeader info_header; // BMPファイル情報ヘッダー
-    std::vector<Pixel> pixels; // ピクセルデータを格納する動的配列
+    BMPFileHeader file_header;        // BMPファイルヘッダー
+    BMPInfoHeader info_header;        // BMPファイル情報ヘッダー
+    std::vector<Pixel> pixels;        // RGBピクセルデータ配列
+    std::vector<HSVColor> hsv_pixels; // HSV変換後のデータ配列
 
-    // BMPファイルフォーマットの検証を行う
-    void validateBMPFormat();
+    void validateBMPFormat();                    // BMPファイルフォーマットの検証
+    HSVColor rgbToHSV(const Pixel &pixel) const; // RGB→HSV変換
 };
 
-#endif
+#endif // BMP_H
