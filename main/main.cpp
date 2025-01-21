@@ -1,32 +1,35 @@
+
+// main.cpp
 #include "bmp.h"
 #include <iostream>
 
 int main(int argc, char *argv[])
 {
-    // コマンドライン引数の数をチェック
+    // コマンドライン引数のチェック
     if (argc != 3)
     {
-        std::cerr << "使い方: " << argv[0] << " <入力画像ファイルパス> <出力画像ファイルパス>" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " input_filepath output_filepath" << std::endl;
         return 1;
     }
 
     try
     {
-        // BMPプロセッサーのインスタンスを作成
         BMPProcessor processor;
 
-        // 入力BMPファイルを読み込む
+        // BMPファイルの読み込み
         processor.readBMP(argv[1]);
 
-        // ここに画像処理のコードを追加
+        // RGB値をHSV色空間に変換
+        processor.convertToHSV();
 
-        // 処理結果をファイルに保存
+        // この後に果物検出処理を追加予定
+
+        // 処理結果を保存
         processor.writeBMP(argv[2]);
     }
     catch (const std::exception &e)
     {
-        // エラーメッセージを表示
-        std::cerr << "エラー: " << e.what() << std::endl;
+        std::cerr << "Error: " << e.what() << std::endl;
         return 1;
     }
 
